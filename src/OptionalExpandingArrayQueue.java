@@ -56,6 +56,10 @@ public class OptionalExpandingArrayQueue<T> {
     return this.getElements().length;
   }
 
+  public boolean isWrapped() {
+    return this.getRearIdx() <= this.getFrontIdx();
+  }
+
   /**
    * Returns empty if the index is out of range because this will signal end of file in a peek
    *
@@ -65,12 +69,15 @@ public class OptionalExpandingArrayQueue<T> {
    */
   @SuppressWarnings("unchecked")
   public Optional<T> getElementRawIdx(int idx) throws Exception {
-    if (this.isEmpty() || (idx >= this.getRearIdx() && idx < this.getFrontIdx())
+    if (this.isEmpty() || (this.isWrapped() && idx >= this.getRearIdx() && idx < this.getFrontIdx())
+        || (!this.isWrapped() && (idx < this.getFrontIdx() || idx >= this.getRearIdx()))
         || idx >= this.getArrCap()) {
       return Optional.empty();
     }
     Optional<T> ret = Optional.ofNullable((T) this.getElements()[idx]);
     if (ret.isEmpty()) {
+      System.out.println(idx + " " + this.getFrontIdx() + " " + this.getRearIdx());
+      this.printQueue2();
       throw new Exception("Internal Error: Found Null Entry In Queue");
     }
     return ret;
@@ -91,7 +98,7 @@ public class OptionalExpandingArrayQueue<T> {
       this.setRearIdx(0);
     }
     if (this.getSize() == this.getArrCap()) {
-      this.expand();
+      this.expand2();
     }
   }
 
@@ -121,20 +128,28 @@ public class OptionalExpandingArrayQueue<T> {
     newElements = null;
   }
 
-  @SuppressWarnings("unchecked")
+  private void expand2() throws Exception {
+    this.expectsFullQueue();
+    int oldCapacity = this.getArrCap();
+    int increase = oldCapacity >> 1;
+    int newCapacity = oldCapacity + increase;
+    Object[] newElements = new Object[newCapacity];
+    System.arraycopy(this.getElements(), 0, newElements, 0, this.getRearIdx());
+    System.arraycopy(this.getElements(), this.getFrontIdx(), newElements,
+        this.getFrontIdx() + increase, this.getArrCap() - this.getFrontIdx());
+    this.setFrontIdx(this.getFrontIdx() + increase);
+    this.setElements(newElements);
+  }
+
   public Optional<T> seek(int idx) throws Exception {
-    if (idx >= this.getSize() || this.isEmpty()) {
+    if (idx >= this.getSize()) {
       return Optional.empty();
     }
     int seekIdx = this.getFrontIdx() + idx;
     if (seekIdx >= this.getArrCap()) {
       seekIdx -= this.getArrCap();
     }
-    Optional<T> ret = Optional.ofNullable((T) this.getElements()[seekIdx]);
-    if (ret.isEmpty()) {
-      throw new Exception("Internal Error: Null Entry Before Rear Index");
-    }
-    return ret;
+    return this.getElementRawIdx(seekIdx);
   }
 
   public Optional<T> poll() throws Exception {
@@ -169,19 +184,29 @@ public class OptionalExpandingArrayQueue<T> {
    */
 
   public String toString() {
-    StringBuilder sBuilder = new StringBuilder();
-    sBuilder.append("front = ").append(frontIdx).append("; ");
-    sBuilder.append("rear = ").append(rearIdx).append("\n");
-    for (int k = 0; k < elements.length; k++) {
-      if (elements[k] != null) {
-        sBuilder.append(k).append(" ").append(elements[k]);
-      } else {
-        sBuilder.append(k).append(" ?");
+    StringBuilder ret = new StringBuilder();
+    for (int k = 0; k < this.getArrCap(); k++) {
+      try {
+        ret.append(this.getElementRawIdx(k).map(T::toString).orElse("?"));
+      } catch (Exception e) {
+        throw new RuntimeException(e);
       }
-      if (k != elements.length - 1) {
-        sBuilder.append("\n");
+      if (k != this.getArrCap() - 1) {
+        ret.append("\n");
       }
     }
-    return sBuilder.toString();
+    return ret.toString();
+  }
+
+  public void printQueue() throws Exception {
+    for (int k = 0; k < this.getArrCap(); k++) {
+      System.out.println(this.getElementRawIdx(k).map(T::toString).orElse("?"));
+    }
+  }
+
+  public void printQueue2() throws Exception {
+    for (int k = 0; k < this.getArrCap(); k++) {
+      System.out.println(k + " " + this.getElements()[k]);
+    }
   }
 }
