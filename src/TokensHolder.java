@@ -1,4 +1,6 @@
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.IntStream;
 
 public class TokensHolder {
 
@@ -21,23 +23,67 @@ public class TokensHolder {
     return SingletonHelper.INSTANCE;
   }
 
-  public static void offer(Token token) throws Exception {
+  public static void offer(Token token) {
     getInstance().getTokens().offer(token);
   }
 
-  public static Optional<Token> poll() throws Exception {
+  public static Optional<Token> poll() {
     return getInstance().getTokens().poll();
   }
 
-  public static Optional<Token> matchAndRemove(Token.TokenType tt) throws Exception {
-    // Replace GENERAL with EOF when copying to hespr project
-    Token peekRet = getInstance().getTokens().peek()
-        .orElseGet(() -> new Token("", Token.TokenType.GENERAL, -1));
-    if (peekRet.getTokenType() == tt) {
-      poll();
-      return Optional.of(peekRet);
+  public static Token peek() {
+    return getInstance().getTokens().peek().orElseGet(Token::new);
+  }
+
+  public static boolean peekIs(TokenType tt) {
+    return peek().getTokenType() == tt;
+  }
+
+  public static boolean peekIs(List<TokenType> tts) {
+    return tts.contains(peek().getTokenType());
+  }
+
+  public static Optional<Token> matchAndRemove(TokenType tt) {
+    return (peekIs(tt)) ? poll() : Optional.empty();
+  }
+
+  public static Optional<Token> matchAndRemove(List<TokenType> tts) {
+    return (peekIs(tts)) ? poll() : Optional.empty();
+  }
+
+  public static Token seek(int idx) {
+    return getInstance().getTokens().seek(idx).orElseGet(Token::new);
+  }
+
+  public static boolean seekIs(TokenType tt, int idx) {
+    return seek(idx).getTokenType() == tt;
+  }
+
+  public static boolean seekIs(List<TokenType> tts, int idx) {
+    return tts.contains(seek(idx).getTokenType());
+  }
+
+  public static boolean findBeforeNextEOL(TokenType tt) {
+    TokenType nextTokenType = peek().getTokenType();
+    int i = 0;
+    while (nextTokenType != TokenType.ENDOFFILE && nextTokenType != TokenType.ENDOFLINE) {
+      if (nextTokenType == tt) {
+        return true;
+      }
+      nextTokenType = seek(++i).getTokenType();
     }
-    return Optional.empty();
+    return false;
+  }
+
+  public static boolean findBeforeNextEOL2(TokenType tt) {
+    return IntStream.iterate(0, i -> i + 1)
+        .mapToObj(i -> seek(i).getTokenType())
+        .takeWhile(tokenType -> tokenType != TokenType.ENDOFFILE && tokenType != TokenType.ENDOFLINE)
+        .anyMatch(tokenType -> tokenType == tt);
+  }
+
+  public static int peekLine() {
+    return peek().getTokenLineNum();
   }
 }
 

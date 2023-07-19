@@ -2,15 +2,6 @@ import java.io.Serializable;
 
 public class Token implements Serializable {
 
-  public enum TokenType {
-    KNOWNWORD,
-    OPERATOR,
-    LITERAL,
-    INDENTATION,
-    PUNCTUATION,
-    GENERAL
-  }
-
   private TokenType tokenType;
   private String valueString;
   private int lineNumber;
@@ -28,6 +19,12 @@ public class Token implements Serializable {
     this.valueString = orig.getValueString();
     this.tokenType = orig.getTokenType();
     this.lineNumber = orig.getTokenLineNum();
+  }
+
+  public Token() {
+    this.valueString = "";
+    this.tokenType = TokenType.ENDOFFILE;
+    this.lineNumber = -1;
   }
 
   public int getTokenLineNum() {

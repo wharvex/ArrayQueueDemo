@@ -68,7 +68,7 @@ public class OptionalExpandingArrayQueue<T> {
    * @throws Exception
    */
   @SuppressWarnings("unchecked")
-  public Optional<T> getElementRawIdx(int idx) throws Exception {
+  public Optional<T> getElementRawIdx(int idx) {
     if (this.isEmpty() || (this.isWrapped() && idx >= this.getRearIdx() && idx < this.getFrontIdx())
         || (!this.isWrapped() && (idx < this.getFrontIdx() || idx >= this.getRearIdx()))
         || idx >= this.getArrCap()) {
@@ -78,18 +78,18 @@ public class OptionalExpandingArrayQueue<T> {
     if (ret.isEmpty()) {
       System.out.println(idx + " " + this.getFrontIdx() + " " + this.getRearIdx());
       this.printQueue2();
-      throw new Exception("Internal Error: Found Null Entry In Queue");
+      throw new RuntimeException("Internal Error: Found Null Entry In Queue");
     }
     return ret;
   }
 
-  public Optional<T> peek() throws Exception {
+  public Optional<T> peek() {
     return this.getElementRawIdx(this.getFrontIdx());
   }
 
-  public void offer(T t) throws Exception {
+  public void offer(T t) {
     if (t == null) {
-      throw new Exception("Null Additions To Queue Not Allowed");
+      throw new RuntimeException("Null Additions To Queue Not Allowed");
     }
     this.setSize(this.getSize() + 1);
     this.getElements()[this.getRearIdx()] = t;
@@ -98,37 +98,17 @@ public class OptionalExpandingArrayQueue<T> {
       this.setRearIdx(0);
     }
     if (this.getSize() == this.getArrCap()) {
-      this.expand2();
+      this.expand();
     }
   }
 
-  private void expectsFullQueue() throws Exception {
+  private void expectsFullQueue() {
     if (!(this.getSize() == this.getArrCap() && this.getRearIdx() == this.getFrontIdx())) {
-      throw new Exception("Internal Error: Expected Full Queue For Current Operation");
+      throw new RuntimeException("Internal Error: Expected Full Queue For Current Operation");
     }
   }
 
-  // Should only be called when front == rear and queue is full
-  private void expand() throws Exception {
-    this.expectsFullQueue();
-    int oldCapacity = this.getArrCap();
-    int increase = oldCapacity >> 1;
-    int newCapacity = oldCapacity + increase;
-    Object[] newElements = new Object[newCapacity];
-    for (int i = 0; i < this.getRearIdx(); i++) {
-      newElements[i] = ObjectCloner.deepCopy(this.getElementRawIdx(i)
-          .orElseThrow(() -> new Exception("Internal Error: Index Out Of Bounds")));
-    }
-    for (int i = this.getFrontIdx() + increase; i < newCapacity; i++) {
-      newElements[i] = ObjectCloner.deepCopy(this.getElementRawIdx(i - increase)
-          .orElseThrow(() -> new Exception("Internal Error: Index Out Of Bounds")));
-    }
-    this.setElements(Arrays.copyOf(newElements, newElements.length));
-    this.setFrontIdx(this.getFrontIdx() + increase);
-    newElements = null;
-  }
-
-  private void expand2() throws Exception {
+  private void expand() {
     this.expectsFullQueue();
     int oldCapacity = this.getArrCap();
     int increase = oldCapacity >> 1;
@@ -141,7 +121,7 @@ public class OptionalExpandingArrayQueue<T> {
     this.setElements(newElements);
   }
 
-  public Optional<T> seek(int idx) throws Exception {
+  public Optional<T> seek(int idx) {
     if (idx >= this.getSize()) {
       return Optional.empty();
     }
@@ -152,7 +132,7 @@ public class OptionalExpandingArrayQueue<T> {
     return this.getElementRawIdx(seekIdx);
   }
 
-  public Optional<T> poll() throws Exception {
+  public Optional<T> poll() {
     Optional<T> optionalT = this.peek();
     // This should only be empty if the queue is empty
     if (optionalT.isEmpty()) {
@@ -186,11 +166,7 @@ public class OptionalExpandingArrayQueue<T> {
   public String toString() {
     StringBuilder ret = new StringBuilder();
     for (int k = 0; k < this.getArrCap(); k++) {
-      try {
-        ret.append(this.getElementRawIdx(k).map(T::toString).orElse("?"));
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
+      ret.append(this.getElementRawIdx(k).map(T::toString).orElse("?"));
       if (k != this.getArrCap() - 1) {
         ret.append("\n");
       }
@@ -198,13 +174,13 @@ public class OptionalExpandingArrayQueue<T> {
     return ret.toString();
   }
 
-  public void printQueue() throws Exception {
+  public void printQueue() {
     for (int k = 0; k < this.getArrCap(); k++) {
       System.out.println(this.getElementRawIdx(k).map(T::toString).orElse("?"));
     }
   }
 
-  public void printQueue2() throws Exception {
+  public void printQueue2() {
     for (int k = 0; k < this.getArrCap(); k++) {
       System.out.println(k + " " + this.getElements()[k]);
     }
